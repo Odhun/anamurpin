@@ -147,7 +147,7 @@ export default function ReportDetailModal() {
               </div>
               <span>{selectedReport.username}</span>
               {selectedReport.authorVerified && (
-                <BadgeCheck className="w-3.5 h-3.5 text-blue-500" title="Onaylı Yerel Muhabir" />
+                <BadgeCheck className="w-3.5 h-3.5 text-blue-500" aria-label="Onaylı Yerel Muhabir" />
               )}
             </div>
             <div className="flex items-center gap-1">

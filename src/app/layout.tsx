@@ -19,19 +19,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr" suppressHydrationWarning>
-      <head>
+      <body
+        className={`${inter.className} bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased`}
+        suppressHydrationWarning
+      >
         <script
           dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                const t = localStorage.getItem('anamurpin_theme');
-                if (t === 'dark') document.documentElement.classList.add('dark');
-              } catch(e) {}
-            `,
+            __html: `try{var t=localStorage.getItem('anamurpin_theme');if(t==='dark')document.documentElement.classList.add('dark');}catch(e){}`,
           }}
         />
-      </head>
-      <body className={`${inter.className} bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased`}>
         {children}
       </body>
     </html>

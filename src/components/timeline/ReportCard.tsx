@@ -71,7 +71,7 @@ function ReportCard({ report, onClick }: Props) {
             @{report.username}
           </span>
           {report.authorVerified && (
-            <BadgeCheck className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" title="Onaylı Yerel Muhabir" />
+            <BadgeCheck className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" aria-label="Onaylı Yerel Muhabir" />
           )}
           {report.isPremium && (
             <span className="text-xs text-yellow-500 flex-shrink-0">⭐</span>
