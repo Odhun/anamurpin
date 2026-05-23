@@ -1,13 +1,19 @@
 import { create } from 'zustand';
 import { User } from 'firebase/auth';
-import { Report, CategoryType, MapBounds } from '@/types';
+import { Report, CategoryType, MapBounds, UserProfile } from '@/types';
 
 interface AppState {
   // Auth
   user: User | null;
+  userProfile: UserProfile | null;
   userNetScore: number;
   setUser: (user: User | null) => void;
+  setUserProfile: (profile: UserProfile | null) => void;
   setUserNetScore: (score: number) => void;
+
+  // Username modal
+  showUsernameModal: boolean;
+  setShowUsernameModal: (v: boolean) => void;
 
   // Reports cache
   reports: Report[];
@@ -53,9 +59,14 @@ const ALL_CATEGORIES: CategoryType[] = ['emergency', 'event', 'weather', 'lost',
 
 export const useAppStore = create<AppState>((set) => ({
   user: null,
+  userProfile: null,
   userNetScore: 0,
   setUser: (user) => set({ user }),
+  setUserProfile: (profile) => set({ userProfile: profile }),
   setUserNetScore: (score) => set({ userNetScore: score }),
+
+  showUsernameModal: false,
+  setShowUsernameModal: (v) => set({ showUsernameModal: v }),
 
   reports: [],
   isFetchingReports: false,

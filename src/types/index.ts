@@ -24,6 +24,7 @@ export interface Report {
 export interface UserProfile {
   id: string;
   username: string;
+  needsUsername?: boolean;
   netScore: number;
   createdAt: Timestamp;
 }

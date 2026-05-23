@@ -13,6 +13,7 @@ import Timeline from '@/components/timeline/Timeline';
 import ReportDetailModal from '@/components/modals/ReportDetailModal';
 import AddPinModal from '@/components/map/AddPinModal';
 import AuthModal from '@/components/ui/AuthModal';
+import UsernameModal from '@/components/ui/UsernameModal';
 
 const MapView = dynamic(() => import('@/components/map/MapView'), {
   ssr: false,
@@ -30,7 +31,7 @@ export default function HomePage() {
   useAuth();
   const { allReports, timelineReports, isLoading, refresh } = useReports();
   const { isFrost, temperature } = useWeather();
-  const { selectedReport, isAddingPin, showAuthModal, isDarkMode, setDarkMode } = useAppStore();
+  const { selectedReport, isAddingPin, showAuthModal, showUsernameModal, isDarkMode, setDarkMode } = useAppStore();
 
   // Sync theme on mount
   useEffect(() => {
@@ -79,6 +80,7 @@ export default function HomePage() {
       {selectedReport && <ReportDetailModal />}
       {isAddingPin && <AddPinModal />}
       {showAuthModal && <AuthModal />}
+      {showUsernameModal && <UsernameModal />}
     </div>
   );
 }

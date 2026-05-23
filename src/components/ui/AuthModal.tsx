@@ -18,8 +18,9 @@ export default function AuthModal() {
       await upgradeWithGoogle();
       setShowAuthModal(false);
     } catch (err: any) {
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setError('Giriş başarısız. Tekrar deneyin.');
+      console.error('Auth error code:', err.code, err.message);
+      if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+        setError(`Giriş başarısız: ${err.code ?? err.message}`);
       }
     } finally {
       setLoading(false);

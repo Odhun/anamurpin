@@ -9,11 +9,11 @@ import ThemeToggle from './ThemeToggle';
 const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID;
 
 export default function Header() {
-  const { user, userNetScore, setShowAuthModal } = useAppStore();
+  const { user, userProfile, userNetScore, setShowAuthModal } = useAppStore();
   const { isAuthenticated, isAnonymous, signOut } = useAuth();
   const isAdmin = !!user && !user?.isAnonymous && user.uid === ADMIN_UID;
 
-  const displayName = user?.displayName ?? user?.email?.split('@')[0] ?? null;
+  const displayName = userProfile?.username || null;
 
   return (
     <header className="flex items-center justify-between px-4 py-2.5 bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 z-50 flex-shrink-0">

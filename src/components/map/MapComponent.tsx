@@ -1,9 +1,10 @@
 'use client';
 
-import { useCallback } from 'react';
-import { MapContainer, TileLayer, useMapEvents, Marker } from 'react-leaflet';
+import { useCallback, useState } from 'react';
+import { MapContainer, TileLayer, useMapEvents, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { Navigation, Loader2 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { Report } from '@/types';
 import { getCategoryMeta } from '@/utils/categories';
@@ -23,10 +24,10 @@ const TILES = {
   },
 };
 
-const MAP_CENTER: [number, number] = [36.0857, 33.0669];
+const MAP_CENTER: [number, number] = [36.0741, 32.8355];
 const MAP_BOUNDS: [[number, number], [number, number]] = [
-  [35.7, 32.3],
-  [36.5, 33.8],
+  [35.9, 32.6],
+  [36.3, 33.3],
 ];
 
 function createPinIcon(category: string, isPremium: boolean, isNew: boolean): L.DivIcon {
@@ -69,6 +70,43 @@ function createPinIcon(category: string, isPremium: boolean, isNew: boolean): L.
 
 function isNewReport(createdAt: { toMillis: () => number }): boolean {
   return Date.now() - createdAt.toMillis() < 60 * 60 * 1000;
+}
+
+function LocateMe() {
+  const map = useMap();
+  const [locating, setLocating] = useState(false);
+
+  function handleLocate() {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        map.flyTo([coords.latitude, coords.longitude], 15, { duration: 1 });
+        setLocating(false);
+      },
+      () => setLocating(false),
+      { timeout: 8000, maximumAge: 60000 },
+    );
+  }
+
+  return (
+    <div className="leaflet-bottom leaflet-right" style={{ marginBottom: '28px' }}>
+      <div className="leaflet-control">
+        <button
+          onClick={handleLocate}
+          title="Konumumu Bul"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40 }}
+          className="rounded-full bg-white dark:bg-gray-800 shadow-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        >
+          {locating ? (
+            <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+          ) : (
+            <Navigation className="w-5 h-5 text-blue-500" />
+          )}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function MapEvents() {
@@ -115,7 +153,7 @@ export default function MapComponent({ reports, focusReportId }: MapComponentPro
   return (
     <MapContainer
       center={MAP_CENTER}
-      zoom={11}
+      zoom={13}
       minZoom={9}
       maxZoom={18}
       maxBounds={MAP_BOUNDS}
@@ -132,6 +170,7 @@ export default function MapComponent({ reports, focusReportId }: MapComponentPro
       />
 
       <MapEvents />
+      <LocateMe />
       <MapController focusReportId={focusReportId} reports={reports} />
 
       {reports.map((report) => (

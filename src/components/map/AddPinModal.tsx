@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { X, MapPin, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
+import { X, MapPin, Image as ImageIcon, Loader2, AlertCircle, Navigation } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { getCategoryMeta, CATEGORIES } from '@/utils/categories';
 import { CategoryType } from '@/types';
-import { createReport, uploadReportImage, ensureUserProfile } from '@/lib/firestore';
+import { createReport, uploadReportImage } from '@/lib/firestore';
 import { compressToWebP, isBlockedFileType, formatFileSize } from '@/lib/imageCompression';
 import { getUserNetScore } from '@/lib/firestore';
 import { isVerifiedReporter } from '@/lib/reliability';
@@ -13,6 +13,7 @@ import { isVerifiedReporter } from '@/lib/reliability';
 export default function AddPinModal() {
   const {
     user,
+    userProfile,
     addPinCoords,
     setIsAddingPin,
     setAddPinCoords,
@@ -25,8 +26,22 @@ export default function AddPinModal() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [locatingGPS, setLocatingGPS] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function handleGPSLocation() {
+    if (!navigator.geolocation) return;
+    setLocatingGPS(true);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setAddPinCoords({ lat: coords.latitude, lng: coords.longitude });
+        setLocatingGPS(false);
+      },
+      () => setLocatingGPS(false),
+      { timeout: 8000, maximumAge: 30000 },
+    );
+  }
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -55,8 +70,7 @@ export default function AddPinModal() {
     setError(null);
 
     try {
-      const displayName = user.displayName ?? user.email ?? 'Kullanıcı';
-      await ensureUserProfile(user.uid, displayName);
+      const username = userProfile?.username || 'Kullanıcı';
 
       let imageUrl: string | null = null;
       if (imageFile) {
@@ -68,7 +82,7 @@ export default function AddPinModal() {
 
       const id = await createReport({
         userId: user.uid,
-        username: displayName,
+        username,
         category,
         title: title.trim(),
         description: description.trim(),
@@ -86,7 +100,7 @@ export default function AddPinModal() {
       addReportToCache({
         id,
         userId: user.uid,
-        username: displayName,
+        username,
         category,
         title: title.trim(),
         description: description.trim(),
@@ -135,8 +149,24 @@ export default function AddPinModal() {
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           {/* Coordinates display */}
-          <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
-            📍 {addPinCoords?.lat.toFixed(5)}, {addPinCoords?.lng.toFixed(5)}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg px-3 py-2">
+              📍 {addPinCoords?.lat.toFixed(5)}, {addPinCoords?.lng.toFixed(5)}
+            </div>
+            <button
+              type="button"
+              onClick={handleGPSLocation}
+              disabled={locatingGPS}
+              title="Mevcut konumumu kullan"
+              className="flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg px-2.5 py-2 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors disabled:opacity-60 flex-shrink-0"
+            >
+              {locatingGPS ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Navigation className="w-3.5 h-3.5" />
+              )}
+              GPS
+            </button>
           </div>
 
           {/* Category */}

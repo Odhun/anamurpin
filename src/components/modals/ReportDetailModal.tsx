@@ -111,6 +111,7 @@ export default function ReportDetailModal() {
               src={selectedReport.imageUrl}
               alt={selectedReport.title}
               className="w-full h-full object-cover"
+              onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
             />
           </div>
         )}

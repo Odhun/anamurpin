@@ -22,11 +22,21 @@ import { isVerifiedReporter } from './reliability';
 const CACHE_KEY = 'anamurpin_reports_v2';
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+function reviveReport(r: any): Report {
+  return {
+    ...r,
+    createdAt: new Timestamp(r.createdAt.seconds, r.createdAt.nanoseconds),
+    expiresAt: new Timestamp(r.expiresAt.seconds, r.expiresAt.nanoseconds),
+  };
+}
+
 function getCache(): { data: Report[]; ts: number } | null {
   try {
     const raw = sessionStorage.getItem(CACHE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    parsed.data = (parsed.data as any[]).map(reviveReport);
+    return parsed;
   } catch {
     return null;
   }
@@ -124,10 +134,7 @@ export async function fetchUserProfile(userId: string): Promise<UserProfile | nu
   return { id: snap.id, ...snap.data() } as UserProfile;
 }
 
-export async function ensureUserProfile(
-  userId: string,
-  username: string,
-): Promise<UserProfile> {
+export async function ensureUserProfile(userId: string): Promise<UserProfile> {
   const userRef = doc(db, 'users', userId);
   const snap = await getDoc(userRef);
 
@@ -136,12 +143,23 @@ export async function ensureUserProfile(
   }
 
   const profile: Omit<UserProfile, 'id'> = {
-    username,
+    username: '',
+    needsUsername: true,
     netScore: 0,
     createdAt: Timestamp.now(),
   };
   await setDoc(userRef, profile);
   return { id: userId, ...profile };
+}
+
+export async function updateUsername(userId: string, username: string): Promise<void> {
+  await updateDoc(doc(db, 'users', userId), { username, needsUsername: false });
+}
+
+export async function isUsernameAvailable(username: string): Promise<boolean> {
+  const q = query(collection(db, 'users'), where('username', '==', username), limit(1));
+  const snap = await getDocs(q);
+  return snap.empty;
 }
 
 export async function getUserNetScore(userId: string): Promise<number> {
