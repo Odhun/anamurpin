@@ -12,6 +12,7 @@ import CategoryFilter from '@/components/ui/CategoryFilter';
 import ReportDetailModal from '@/components/modals/ReportDetailModal';
 import AddPinModal from '@/components/map/AddPinModal';
 import AuthModal from '@/components/ui/AuthModal';
+import UsernameModal from '@/components/ui/UsernameModal';
 
 const MapView = dynamic(() => import('@/components/map/MapView'), {
   ssr: false,
@@ -30,6 +31,7 @@ export default function PinPageClient({ reportId }: { reportId: string }) {
     selectedReport,
     isAddingPin,
     showAuthModal,
+    showUsernameModal,
     setSelectedReport,
     setDarkMode,
     reports,
@@ -60,6 +62,7 @@ export default function PinPageClient({ reportId }: { reportId: string }) {
       {selectedReport && <ReportDetailModal />}
       {isAddingPin && <AddPinModal />}
       {showAuthModal && <AuthModal />}
+      {showUsernameModal && <UsernameModal />}
     </div>
   );
 }

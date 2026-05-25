@@ -12,7 +12,7 @@ function timeAgo(ts: { toMillis: () => number }): string {
   const diff = Date.now() - ts.toMillis();
   const m = Math.floor(diff / 60000);
   if (m < 1) return 'Az önce';
-  if (m < 60) return `${m}d`;
+  if (m < 60) return `${m}dk`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}s`;
   return `${Math.floor(h / 24)}g`;

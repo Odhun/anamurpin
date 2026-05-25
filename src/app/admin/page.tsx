@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useReports } from '@/hooks/useReports';
 import { useAppStore } from '@/store/useAppStore';
 import { isAdminUser } from '@/lib/admin';
 import AdminPanel from '@/components/admin/AdminPanel';
@@ -10,6 +11,7 @@ import { ShieldOff } from 'lucide-react';
 
 export default function AdminPage() {
   useAuth();
+  useReports();
   const { user, setDarkMode } = useAppStore();
 
   useEffect(() => {

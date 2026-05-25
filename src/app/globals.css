@@ -55,13 +55,13 @@ body {
   animation: ping-ring 1.8s cubic-bezier(0,0,0.2,1) infinite;
 }
 
-/* Bottom sheet for mobile */
-.bottom-sheet {
-  transform: translateY(60%);
-  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+/* Hide scrollbar (cross-browser) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-.bottom-sheet.open {
-  transform: translateY(0);
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* Scrollbar styling */

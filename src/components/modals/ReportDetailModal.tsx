@@ -77,10 +77,12 @@ export default function ReportDetailModal() {
     try {
       await voteOnReport(selectedReport.id, voteType, selectedReport.userId);
       recordVote(selectedReport.id, voteType);
-      updateReportInCache(selectedReport.id, {
+      const updates = {
         upvotes: selectedReport.upvotes + (voteType === 'up' ? 1 : 0),
         downvotes: selectedReport.downvotes + (voteType === 'down' ? 1 : 0),
-      });
+      };
+      updateReportInCache(selectedReport.id, updates);
+      setSelectedReport({ ...selectedReport, ...updates });
     } catch (err) {
       console.error('Vote failed:', err);
     } finally {
@@ -113,8 +115,10 @@ export default function ReportDetailModal() {
     if (!selectedReport) return;
     setSaving(true);
     try {
-      await updateReport(selectedReport.id, { title: editTitle.trim(), description: editDesc.trim() });
-      updateReportInCache(selectedReport.id, { title: editTitle.trim(), description: editDesc.trim() });
+      const updates = { title: editTitle.trim(), description: editDesc.trim() };
+      await updateReport(selectedReport.id, updates);
+      updateReportInCache(selectedReport.id, updates);
+      setSelectedReport({ ...selectedReport, ...updates });
       setEditMode(false);
     } catch (err) {
       console.error('Update failed:', err);
