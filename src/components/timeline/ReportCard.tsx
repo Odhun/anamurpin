@@ -64,6 +64,8 @@ function ReportCard({ report, onClick }: Props) {
             src={report.imageUrl}
             alt={report.title}
             className="w-full max-h-36 object-contain"
+            loading="lazy"
+            decoding="async"
             onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
           />
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useAuth } from '@/hooks/useAuth';
 import { useReports } from '@/hooks/useReports';
@@ -72,7 +72,7 @@ export default function HomePage() {
           <MobileBottomSheet reports={visibleTimeline} isLoading={isLoading} onRefresh={refresh} />
 
           {/* Click-to-add hint overlay */}
-          {!isAddingPin && (
+          {!isAddingPin && !selectedReport && (
             <div className="absolute bottom-20 left-1/2 -translate-x-1/2 md:bottom-6 pointer-events-none z-[400]">
               <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm text-xs text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
                 Haritaya tıkla → Pin ekle
@@ -100,13 +100,38 @@ function MobileBottomSheet({
   isLoading: boolean;
   onRefresh: () => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <div className="md:hidden absolute bottom-0 left-0 right-0 z-[500] bg-white dark:bg-gray-950 rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-800 max-h-[55vh] flex flex-col">
-      {/* Drag handle */}
-      <div className="flex justify-center py-2 flex-shrink-0">
-        <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+    <div
+      className={`md:hidden absolute bottom-0 left-0 right-0 z-[500] bg-white dark:bg-gray-950 rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
+        expanded ? 'max-h-[80vh]' : 'max-h-[44px]'
+      }`}
+    >
+      {/* Tap bar — toggles expand/collapse */}
+      <div
+        role="button"
+        aria-label={expanded ? 'Kapat' : 'Canlı akışı aç'}
+        onClick={() => setExpanded(e => !e)}
+        className="flex items-center justify-between px-4 py-3 cursor-pointer flex-shrink-0 select-none"
+      >
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+          {!expanded && (
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+              {reports.length > 0 ? `${reports.length} pin — Canlı Akış` : 'Canlı Akış'}
+            </span>
+          )}
+        </div>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+        </svg>
       </div>
-      <div className="flex-1 overflow-hidden">
+
+      <div className="flex-1 overflow-hidden min-h-0">
         <Timeline reports={reports} isLoading={isLoading} onRefresh={onRefresh} />
       </div>
     </div>

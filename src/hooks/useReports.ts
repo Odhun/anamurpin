@@ -39,6 +39,11 @@ export function useReports() {
           const newCount = data.filter(r => !initialIds.current!.has(r.id)).length;
           if (newCount > 0) setNewPinsCount(newCount);
         }
+        // Auto-close modal if the selected pin was deleted or expired
+        const { selectedReport, setSelectedReport } = useAppStore.getState();
+        if (selectedReport && !data.find(r => r.id === selectedReport.id)) {
+          setSelectedReport(null);
+        }
         setReports(data);
         setIsFetchingReports(false);
       },
