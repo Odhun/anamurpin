@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useReports } from '@/hooks/useReports';
 import { useWeather } from '@/hooks/useWeather';
@@ -61,7 +62,26 @@ export default function HomePage() {
           flex-col border-r border-gray-200 dark:border-gray-800
           bg-white dark:bg-gray-950
         ">
-          <Timeline reports={visibleTimeline} isLoading={isLoading} onRefresh={refresh} />
+          <div className="flex-1 min-h-0 overflow-hidden">
+            <Timeline reports={visibleTimeline} isLoading={isLoading} onRefresh={refresh} />
+          </div>
+          {/* Sidebar footer */}
+          <div className="flex-shrink-0 border-t border-gray-100 dark:border-gray-800 px-4 py-2.5 flex items-center justify-between">
+            <nav className="flex items-center gap-3 text-xs text-gray-400">
+              <Link href="/hakkinda" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">Hakkında</Link>
+              <Link href="/gizlilik" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">Gizlilik</Link>
+              <Link href="/iletisim" className="hover:text-gray-700 dark:hover:text-gray-200 transition-colors">İletişim</Link>
+            </nav>
+            <a
+              href="https://www.odhun.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+            >
+              <span className="text-yellow-500">⚡</span>
+              <span>OdhunSoft</span>
+            </a>
+          </div>
         </aside>
 
         {/* Map */}
