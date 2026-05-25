@@ -47,7 +47,6 @@ export default function AddPinModal() {
     addPinCoords,
     setIsAddingPin,
     setAddPinCoords,
-    addReportToCache,
   } = useAppStore();
 
   const isAdmin = isAdminUser(user);
@@ -132,27 +131,6 @@ export default function AddPinModal() {
         isPremium: false,
         authorVerified,
         durationDays: days,
-      });
-
-      const { Timestamp } = await import('firebase/firestore');
-      const now = Timestamp.now();
-      addReportToCache({
-        id,
-        userId: user.uid,
-        username,
-        category,
-        title: title.trim(),
-        description: description.trim(),
-        latitude: addPinCoords.lat,
-        longitude: addPinCoords.lng,
-        imageUrl,
-        createdAt: now,
-        expiresAt: Timestamp.fromMillis(now.toMillis() + days * 24 * 60 * 60 * 1000),
-        upvotes: 0,
-        downvotes: 0,
-        status: 'active',
-        isPremium: false,
-        authorVerified,
       });
 
       if (!isAdmin) recordPin();
