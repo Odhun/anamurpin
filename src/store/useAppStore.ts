@@ -71,7 +71,7 @@ interface AppState {
   setTemperature: (t: number | null) => void;
 }
 
-const ALL_CATEGORIES: CategoryType[] = ['emergency', 'event', 'weather', 'lost', 'general', 'ad'];
+const ALL_CATEGORIES: CategoryType[] = ['emergency', 'traffic', 'fight', 'event', 'radar', 'weather', 'lost', 'general', 'other', 'ad'];
 
 export const useAppStore = create<AppState>((set) => ({
   user: null,

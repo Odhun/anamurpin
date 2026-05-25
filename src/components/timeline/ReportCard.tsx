@@ -33,12 +33,19 @@ function ReportCard({ report, onClick }: Props) {
     >
       {/* Category + time */}
       <div className="flex items-center justify-between mb-1.5">
-        <span
-          className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-          style={{ backgroundColor: `${meta.color}20`, color: meta.color }}
-        >
-          {meta.emoji} {meta.label.split('/')[0].trim()}
-        </span>
+        <div className="flex items-center gap-1.5">
+          {report.category === 'ad' && (
+            <span className="text-xs font-bold uppercase tracking-wide text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-1.5 py-0.5 rounded-full">
+              Reklam
+            </span>
+          )}
+          <span
+            className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
+            style={{ backgroundColor: `${meta.color}20`, color: meta.color }}
+          >
+            {meta.emoji} {meta.label.split('/')[0].trim()}
+          </span>
+        </div>
         <span className="flex items-center gap-1 text-xs text-gray-400">
           <Clock className="w-3 h-3" />
           {timeAgo(report.createdAt)}

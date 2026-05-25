@@ -55,6 +55,16 @@ body {
   animation: ping-ring 1.8s cubic-bezier(0,0,0.2,1) infinite;
 }
 
+/* Locate-me button: clear mobile bottom sheet (56px) on small screens */
+.locate-me-control {
+  margin-bottom: 68px !important;
+}
+@media (min-width: 768px) {
+  .locate-me-control {
+    margin-bottom: 28px !important;
+  }
+}
+
 /* Hide scrollbar (cross-browser) */
 .scrollbar-hide {
   -ms-overflow-style: none;

@@ -3,13 +3,11 @@
 import { useMemo } from 'react';
 import { CATEGORIES } from '@/utils/categories';
 import { useAppStore } from '@/store/useAppStore';
-import { isAdminUser } from '@/lib/admin';
 
 export default function CategoryFilter() {
-  const { selectedCategories, toggleCategory, reports, user } = useAppStore();
-  const isAdmin = isAdminUser(user);
+  const { selectedCategories, toggleCategory, reports } = useAppStore();
 
-  const visibleCategories = CATEGORIES.filter(c => c.id !== 'ad' || isAdmin);
+  const visibleCategories = CATEGORIES;
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};

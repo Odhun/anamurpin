@@ -52,11 +52,15 @@ export default function HakkindaPage() {
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Kategoriler</h2>
           <div className="space-y-2">
             {[
-              { emoji: '🚨', name: 'Son Dakika / Asayiş', desc: 'Kaza, yol kapanması, elektrik/su kesintisi' },
+              { emoji: '🚨', name: 'Son Dakika / Asayiş', desc: 'Acil haber, yol kapanması, kesinti' },
+              { emoji: '🚗', name: 'Trafik Kazası', desc: 'Trafik kazası, yol kapanması' },
+              { emoji: '⚠️', name: 'Kavga / Olay', desc: 'Kavga, güvenlik olayı' },
+              { emoji: '📷', name: 'Radar / Denetim', desc: 'Radar noktası, trafik denetimi' },
               { emoji: '🎉', name: 'Etkinlik / Duyuru', desc: 'Festival, ilan, düğün, cenaze' },
               { emoji: '🌦️', name: 'Hava & Tarım', desc: 'Fırtına uyarısı, don alarmı, tarım haberleri' },
               { emoji: '🐾', name: 'Kayıp / Bulunan', desc: 'Kayıp hayvan, bulunan eşya' },
               { emoji: '💬', name: 'Genel / Serbest Kürsü', desc: 'Genel paylaşımlar ve yerel haberler' },
+              { emoji: '🔖', name: 'Diğer', desc: 'Kategoriye uymayan diğer paylaşımlar' },
             ].map(cat => (
               <div key={cat.name} className="flex items-start gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800">
                 <span className="text-xl flex-shrink-0 mt-0.5">{cat.emoji}</span>

@@ -80,13 +80,13 @@ export function useReports() {
     );
   }, [categoryFiltered, mapBounds]);
 
-  const sortedTimeline = useMemo(
-    () =>
-      [...viewportFiltered].sort(
-        (a, b) => b.createdAt.toMillis() - a.createdAt.toMillis(),
-      ),
-    [viewportFiltered],
-  );
+  const sortedTimeline = useMemo(() => {
+    const byTime = (a: Report, b: Report) => b.createdAt.toMillis() - a.createdAt.toMillis();
+    // Last 2 ads pinned at top, rest sorted by time
+    const ads = viewportFiltered.filter(r => r.category === 'ad').sort(byTime).slice(0, 2);
+    const rest = viewportFiltered.filter(r => r.category !== 'ad').sort(byTime);
+    return [...ads, ...rest];
+  }, [viewportFiltered]);
 
   return {
     allReports: categoryFiltered,

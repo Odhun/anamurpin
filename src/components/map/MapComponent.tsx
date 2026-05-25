@@ -156,7 +156,7 @@ function LocateMe() {
   }
 
   return (
-    <div ref={containerRef} className="leaflet-bottom leaflet-right" style={{ marginBottom: '28px' }}>
+    <div ref={containerRef} className="leaflet-bottom leaflet-right locate-me-control">
       <div className="leaflet-control">
         <button
           onClick={handleLocate}
