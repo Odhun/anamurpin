@@ -56,6 +56,15 @@ export const CATEGORIES: CategoryMeta[] = [
     borderColor: 'border-green-400',
     description: 'Genel haberleşme, durum',
   },
+  {
+    id: 'ad',
+    emoji: '📢',
+    label: 'Reklam / Duyuru',
+    color: '#f59e0b',
+    bgColor: 'bg-amber-100 dark:bg-amber-900/30',
+    borderColor: 'border-amber-400',
+    description: 'Sponsor içerik (sadece admin)',
+  },
 ];
 
 export function getCategoryMeta(id: CategoryType): CategoryMeta {

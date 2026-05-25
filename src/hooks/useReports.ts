@@ -1,10 +1,16 @@
 'use client';
 
-import { useEffect, useMemo, useCallback } from 'react';
-import { fetchReports } from '@/lib/firestore';
+import { useEffect, useMemo, useRef, useCallback } from 'react';
+import { subscribeToReports } from '@/lib/firestore';
 import { useAppStore } from '@/store/useAppStore';
 import { Report, CategoryType } from '@/types';
 import { isReportHidden } from '@/lib/reliability';
+
+const TIME_LIMITS: Record<string, number> = {
+  '1h': 3_600_000,
+  '24h': 86_400_000,
+  '7d': 604_800_000,
+};
 
 export function useReports() {
   const {
@@ -14,35 +20,50 @@ export function useReports() {
     setIsFetchingReports,
     selectedCategories,
     mapBounds,
+    setNewPinsCount,
+    clearNewPins,
+    timeFilter,
   } = useAppStore();
 
-  const loadReports = useCallback(async (force = false) => {
-    setIsFetchingReports(true);
-    try {
-      const data = await fetchReports(force);
-      setReports(data);
-    } catch (err) {
-      console.error('Report fetch failed:', err);
-    } finally {
-      setIsFetchingReports(false);
-    }
-  }, [setReports, setIsFetchingReports]);
+  const initialIds = useRef<Set<string> | null>(null);
+  const reportsRef = useRef<Report[]>([]);
+  reportsRef.current = reports;
 
   useEffect(() => {
-    loadReports();
-  }, [loadReports]);
+    setIsFetchingReports(true);
+    const unsub = subscribeToReports(
+      (data) => {
+        if (initialIds.current === null) {
+          initialIds.current = new Set(data.map(r => r.id));
+        } else {
+          const newCount = data.filter(r => !initialIds.current!.has(r.id)).length;
+          if (newCount > 0) setNewPinsCount(newCount);
+        }
+        setReports(data);
+        setIsFetchingReports(false);
+      },
+      () => setIsFetchingReports(false),
+    );
+    return unsub;
+  }, [setReports, setIsFetchingReports, setNewPinsCount]);
 
-  // Client-side filter: categories, hidden (reliability), status
+  const refresh = useCallback(() => {
+    initialIds.current = new Set(reportsRef.current.map(r => r.id));
+    clearNewPins();
+  }, [clearNewPins]);
+
   const categoryFiltered = useMemo((): Report[] => {
+    const now = Date.now();
+    const limit = TIME_LIMITS[timeFilter] ?? 0;
     return reports.filter(
       r =>
         r.status === 'active' &&
         !isReportHidden(r) &&
-        selectedCategories.includes(r.category as CategoryType),
+        selectedCategories.includes(r.category as CategoryType) &&
+        (timeFilter === 'all' || now - r.createdAt.toMillis() < limit),
     );
-  }, [reports, selectedCategories]);
+  }, [reports, selectedCategories, timeFilter]);
 
-  // Further filter by current map viewport
   const viewportFiltered = useMemo((): Report[] => {
     if (!mapBounds) return categoryFiltered;
     return categoryFiltered.filter(
@@ -54,7 +75,6 @@ export function useReports() {
     );
   }, [categoryFiltered, mapBounds]);
 
-  // Sort by createdAt descending (newest first)
   const sortedTimeline = useMemo(
     () =>
       [...viewportFiltered].sort(
@@ -67,6 +87,6 @@ export function useReports() {
     allReports: categoryFiltered,
     timelineReports: sortedTimeline,
     isLoading: isFetchingReports,
-    refresh: () => loadReports(true),
+    refresh,
   };
 }

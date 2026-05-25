@@ -14,7 +14,7 @@ import { ensureUserProfile, getUserNetScore } from '@/lib/firestore';
 import { useAppStore } from '@/store/useAppStore';
 
 export function useAuth() {
-  const { user, setUser, setUserNetScore, setUserProfile, setShowUsernameModal } = useAppStore();
+  const { user, setUser, setUserNetScore, setUserProfile, openUsernameSelect } = useAppStore();
 
   useEffect(() => {
     // Process any pending redirect result; onAuthStateChanged fires after this resolves
@@ -37,7 +37,7 @@ export function useAuth() {
         const profile = await ensureUserProfile(firebaseUser.uid);
         setUserProfile(profile);
         if (profile.needsUsername) {
-          setShowUsernameModal(true);
+          openUsernameSelect();
         }
         const score = await getUserNetScore(firebaseUser.uid);
         setUserNetScore(score);
@@ -45,7 +45,7 @@ export function useAuth() {
     });
 
     return unsub;
-  }, [setUser, setUserNetScore]);
+  }, [setUser, setUserNetScore, setUserProfile, openUsernameSelect]);
 
   async function upgradeWithGoogle(): Promise<void> {
     const provider = new GoogleAuthProvider();

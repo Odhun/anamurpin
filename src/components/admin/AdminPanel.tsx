@@ -1,23 +1,36 @@
 'use client';
 
-import { useState } from 'react';
-import { Trash2, RefreshCw, AlertTriangle, CheckCircle, Database } from 'lucide-react';
-import { batchDeleteExpiredReports, fetchReports } from '@/lib/firestore';
+import { useState, useMemo } from 'react';
+import {
+  Trash2, RefreshCw, AlertTriangle, CheckCircle, Database, Search, List,
+} from 'lucide-react';
+import { batchDeleteExpiredReports, fetchReports, deleteReport } from '@/lib/firestore';
 import { useAppStore } from '@/store/useAppStore';
+import { getCategoryMeta } from '@/utils/categories';
+
+function timeAgo(ts: { toMillis: () => number }): string {
+  const diff = Date.now() - ts.toMillis();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'Az önce';
+  if (m < 60) return `${m}d`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}s`;
+  return `${Math.floor(h / 24)}g`;
+}
 
 export default function AdminPanel() {
-  const { setReports } = useAppStore();
+  const { setReports, reports, removeReportFromCache } = useAppStore();
   const [status, setStatus] = useState<'idle' | 'deleting' | 'done' | 'error'>('idle');
   const [deletedCount, setDeletedCount] = useState(0);
-  const [totalCount, setTotalCount] = useState<number | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [search, setSearch] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function loadStats() {
     setLoadingStats(true);
     try {
-      const reports = await fetchReports(true);
-      setTotalCount(reports.length);
-      setReports(reports);
+      const data = await fetchReports(true);
+      setReports(data);
     } finally {
       setLoadingStats(false);
     }
@@ -29,7 +42,6 @@ export default function AdminPanel() {
       const count = await batchDeleteExpiredReports();
       setDeletedCount(count);
       setStatus('done');
-      // Refresh stats
       await loadStats();
     } catch (err) {
       console.error(err);
@@ -37,12 +49,34 @@ export default function AdminPanel() {
     }
   }
 
+  async function handleDeletePin(id: string) {
+    if (!window.confirm('Bu pini silmek istediğinizden emin misiniz?')) return;
+    setDeletingId(id);
+    try {
+      await deleteReport(id);
+      removeReportFromCache(id);
+    } catch (err) {
+      console.error('Delete failed:', err);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return reports;
+    return reports.filter(r =>
+      r.username.toLowerCase().includes(q) ||
+      r.title.toLowerCase().includes(q),
+    );
+  }, [reports, search]);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Admin Paneli</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Firebase Spark kotasını yönet. Süresi dolmuş pinleri toplu sil.
+          Firebase Spark kotasını yönet.
         </p>
       </div>
 
@@ -62,26 +96,78 @@ export default function AdminPanel() {
           </button>
         </div>
 
-        {totalCount !== null ? (
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{totalCount}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Aktif Pin (≤7 gün)</div>
-            </div>
-            <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
-              <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
-                {deletedCount > 0 ? deletedCount : '—'}
-              </div>
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Son Silinen</div>
-            </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+            <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{reports.length}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Aktif Pin</div>
           </div>
+          <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-xl">
+            <div className="text-3xl font-bold text-orange-600 dark:text-orange-400">
+              {deletedCount > 0 ? deletedCount : '—'}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Son Silinen</div>
+          </div>
+        </div>
+      </div>
+
+      {/* All pins list */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+        <h2 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-4">
+          <List className="w-4 h-4 text-blue-500" />
+          Tüm Pinler
+        </h2>
+
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Kullanıcı adı veya başlık ara…"
+            className="w-full pl-8 pr-3 py-2 text-sm rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+        </div>
+
+        {filtered.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-6">Sonuç yok.</p>
         ) : (
-          <button
-            onClick={loadStats}
-            className="w-full py-3 text-sm text-blue-500 hover:underline"
-          >
-            İstatistikleri yükle
-          </button>
+          <div className="space-y-1.5 max-h-96 overflow-y-auto">
+            {filtered.slice(0, 100).map(r => {
+              const meta = getCategoryMeta(r.category);
+              return (
+                <div
+                  key={r.id}
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/50 group"
+                >
+                  <span className="text-base flex-shrink-0">{meta.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 truncate">
+                      {r.title}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      @{r.username} · {timeAgo(r.createdAt)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDeletePin(r.id)}
+                    disabled={deletingId === r.id}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-all disabled:opacity-50 flex-shrink-0"
+                    title="Sil"
+                  >
+                    {deletingId === r.id
+                      ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      : <Trash2 className="w-3.5 h-3.5" />
+                    }
+                  </button>
+                </div>
+              );
+            })}
+            {filtered.length > 100 && (
+              <p className="text-xs text-gray-400 text-center pt-1">
+                İlk 100 gösteriliyor ({filtered.length} toplam)
+              </p>
+            )}
+          </div>
         )}
       </div>
 
@@ -93,7 +179,7 @@ export default function AdminPanel() {
         </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-xs">expiresAt &lt;= now</code>{' '}
-          koşulunu karşılayan en fazla 500 belgeyi tek batch write ile siler. Cloud Function kullanılmaz.
+          koşulunu karşılayan en fazla 500 belgeyi siler.
         </p>
 
         {status === 'done' && (
@@ -106,7 +192,7 @@ export default function AdminPanel() {
         {status === 'error' && (
           <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm mb-3 bg-red-50 dark:bg-red-900/20 rounded-xl px-3 py-2">
             <AlertTriangle className="w-4 h-4" />
-            Bir hata oluştu. Konsolu kontrol edin.
+            Bir hata oluştu.
           </div>
         )}
 
@@ -130,11 +216,11 @@ export default function AdminPanel() {
           Firebase Spark Kota Notları
         </h3>
         <ul className="mt-2 space-y-1 text-xs text-yellow-700 dark:text-yellow-500 list-disc list-inside">
-          <li>Pinler 7 gün sonra otomatik gizlenir (client-side TTL filtresi)</li>
-          <li>Gerçek Firestore silme işlemi bu butonla manuel tetiklenir</li>
-          <li>Session cache 5 dk. — her filtre değişiminde okuma yapılmaz</li>
+          <li>Pinler expiresAt sonrası client-side filtrelenir (onSnapshot sorgu filtresi)</li>
+          <li>Gerçek Firestore silme işlemi toplu temizlik ile manuel tetiklenir</li>
           <li>Oy işlemleri tek batch write (2 belge): rapor + kullanıcı</li>
-          <li>Resimler WebP ≤300 KB olarak sıkıştırılır yüklenmeden önce</li>
+          <li>Resimler WebP ≤300 KB olarak sıkıştırılır</li>
+          <li>Kullanıcılar saatlik 5 pin ile sınırlıdır (admin muaf)</li>
         </ul>
       </div>
     </div>

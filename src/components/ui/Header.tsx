@@ -1,34 +1,49 @@
 'use client';
 
 import Link from 'next/link';
-import { LogOut, Shield, User } from 'lucide-react';
+import { LogOut, Shield, User, Trophy, Pencil } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/hooks/useAuth';
+import { isAdminUser } from '@/lib/admin';
 import ThemeToggle from './ThemeToggle';
 
-const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID;
-
 export default function Header() {
-  const { user, userProfile, userNetScore, setShowAuthModal } = useAppStore();
-  const { isAuthenticated, isAnonymous, signOut } = useAuth();
-  const isAdmin = !!user && !user?.isAnonymous && user.uid === ADMIN_UID;
+  const {
+    user,
+    userProfile,
+    userNetScore,
+    setShowAuthModal,
+    setShowLeaderboard,
+    openUsernameChange,
+  } = useAppStore();
+  const { isAuthenticated, signOut } = useAuth();
+  const isAdmin = isAdminUser(user);
 
   const displayName = userProfile?.username || null;
 
   return (
-    <header className="flex items-center justify-between px-4 py-2.5 bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 z-50 flex-shrink-0">
+    <header className="flex items-center justify-between px-3 sm:px-4 py-2.5 bg-white dark:bg-gray-950 border-b border-gray-100 dark:border-gray-800 z-50 flex-shrink-0">
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-        <span className="text-xl">📍</span>
-        <div>
+      <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity min-w-0">
+        <span className="text-xl flex-shrink-0">📍</span>
+        <div className="min-w-0">
           <span className="font-bold text-gray-900 dark:text-gray-100 text-base">AnamurPin</span>
           <span className="hidden sm:inline text-xs text-gray-400 ml-2">Anamur · Bozyazı · Aydıncık</span>
         </div>
       </Link>
 
       {/* Right side */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 flex-shrink-0">
         <ThemeToggle />
+
+        {/* Leaderboard */}
+        <button
+          onClick={() => setShowLeaderboard(true)}
+          className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          title="Haftalık Skor"
+        >
+          <Trophy className="w-4 h-4 text-amber-500" />
+        </button>
 
         {isAdmin && (
           <Link
@@ -41,16 +56,23 @@ export default function Header() {
         )}
 
         {isAuthenticated ? (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-full">
-              <User className="w-3.5 h-3.5 text-gray-500" />
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 max-w-[100px] truncate">
+              <User className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300 max-w-[80px] sm:max-w-[120px] truncate">
                 {displayName}
               </span>
               {userNetScore >= 50 && (
-                <span className="text-xs text-blue-500 font-bold" title="Onaylı Yerel Muhabir">✓</span>
+                <span className="text-xs text-blue-500 font-bold flex-shrink-0" title="Onaylı Yerel Muhabir">✓</span>
               )}
             </div>
+            <button
+              onClick={openUsernameChange}
+              className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              title="Kullanıcı adını değiştir"
+            >
+              <Pencil className="w-3.5 h-3.5 text-gray-400" />
+            </button>
             <button
               onClick={signOut}
               className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

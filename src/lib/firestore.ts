@@ -7,10 +7,12 @@ import {
   getDocs,
   addDoc,
   updateDoc,
+  deleteDoc,
   doc,
   getDoc,
   setDoc,
   writeBatch,
+  onSnapshot,
   Timestamp,
   increment,
 } from 'firebase/firestore';
@@ -54,6 +56,28 @@ export function invalidateCache(): void {
   } catch {}
 }
 
+export function subscribeToReports(
+  onUpdate: (reports: Report[]) => void,
+  onError?: (err: Error) => void,
+): () => void {
+  const now = Timestamp.now();
+  const q = query(
+    collection(db, 'reports'),
+    where('expiresAt', '>', now),
+    orderBy('expiresAt', 'asc'),
+    limit(200),
+  );
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const reports = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Report));
+      setCache(reports);
+      onUpdate(reports);
+    },
+    (err) => onError?.(err as Error),
+  );
+}
+
 export async function fetchReports(forceRefresh = false): Promise<Report[]> {
   if (!forceRefresh) {
     const cached = getCache();
@@ -85,13 +109,15 @@ export async function fetchReportById(id: string): Promise<Report | null> {
 }
 
 export async function createReport(
-  data: Omit<Report, 'id' | 'createdAt' | 'expiresAt' | 'upvotes' | 'downvotes'>,
+  data: Omit<Report, 'id' | 'createdAt' | 'expiresAt' | 'upvotes' | 'downvotes'> & { durationDays?: number },
 ): Promise<string> {
   const now = Timestamp.now();
-  const expiresAt = Timestamp.fromMillis(now.toMillis() + 7 * 24 * 60 * 60 * 1000);
+  const days = data.durationDays ?? 2;
+  const expiresAt = Timestamp.fromMillis(now.toMillis() + days * 24 * 60 * 60 * 1000);
+  const { durationDays: _, ...reportData } = data;
 
   const docRef = await addDoc(collection(db, 'reports'), {
-    ...data,
+    ...reportData,
     createdAt: now,
     expiresAt,
     upvotes: 0,
@@ -160,6 +186,47 @@ export async function isUsernameAvailable(username: string): Promise<boolean> {
   const q = query(collection(db, 'users'), where('username', '==', username), limit(1));
   const snap = await getDocs(q);
   return snap.empty;
+}
+
+export async function deleteReport(reportId: string): Promise<void> {
+  await deleteDoc(doc(db, 'reports', reportId));
+  invalidateCache();
+}
+
+export async function updateReport(
+  reportId: string,
+  data: { title: string; description: string },
+): Promise<void> {
+  await updateDoc(doc(db, 'reports', reportId), data);
+  invalidateCache();
+}
+
+export async function fetchWeeklyLeaderboard(): Promise<{ username: string; count: number }[]> {
+  const now = new Date();
+  const lastSunday = new Date(now);
+  lastSunday.setDate(now.getDate() - now.getDay());
+  lastSunday.setHours(0, 0, 0, 0);
+
+  const q = query(
+    collection(db, 'reports'),
+    where('createdAt', '>=', Timestamp.fromDate(lastSunday)),
+    orderBy('createdAt', 'asc'),
+    limit(500),
+  );
+
+  const snap = await getDocs(q);
+  const counts: Record<string, number> = {};
+  snap.docs.forEach(d => {
+    const { username, status } = d.data();
+    if (username && status !== 'removed') {
+      counts[username] = (counts[username] || 0) + 1;
+    }
+  });
+
+  return Object.entries(counts)
+    .map(([username, count]) => ({ username, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
 }
 
 export async function getUserNetScore(userId: string): Promise<number> {

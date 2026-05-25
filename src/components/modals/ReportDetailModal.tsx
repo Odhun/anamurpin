@@ -10,11 +10,15 @@ import {
   BadgeCheck,
   Clock,
   ExternalLink,
+  Trash2,
+  Pencil,
+  Check,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { getCategoryMeta } from '@/utils/categories';
-import { voteOnReport } from '@/lib/firestore';
-import { hasVoted, recordVote, isVerifiedReporter } from '@/lib/reliability';
+import { voteOnReport, deleteReport, updateReport } from '@/lib/firestore';
+import { hasVoted, recordVote } from '@/lib/reliability';
+import { isAdminUser } from '@/lib/admin';
 
 function timeAgo(ts: { toMillis: () => number }): string {
   const diff = Date.now() - ts.toMillis();
@@ -35,15 +39,30 @@ function expiresIn(ts: { toMillis: () => number }): string {
 }
 
 export default function ReportDetailModal() {
-  const { selectedReport, setSelectedReport, user, updateReportInCache, setShowAuthModal } =
-    useAppStore();
+  const {
+    selectedReport,
+    setSelectedReport,
+    user,
+    updateReportInCache,
+    removeReportFromCache,
+    setShowAuthModal,
+  } = useAppStore();
 
   const [isVoting, setIsVoting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [saving, setSaving] = useState(false);
 
   if (!selectedReport) return null;
 
   const meta = getCategoryMeta(selectedReport.category);
   const voted = hasVoted(selectedReport.id);
+  const isAdmin = isAdminUser(user);
+  const isOwner = !!user && user.uid === selectedReport.userId;
+  const canModify = isOwner || isAdmin;
+
   const pinUrl =
     typeof window !== 'undefined'
       ? `${window.location.origin}/pin/${selectedReport.id}`
@@ -52,10 +71,7 @@ export default function ReportDetailModal() {
   async function handleVote(voteType: 'up' | 'down') {
     if (!selectedReport) return;
     if (voted) return;
-    if (!user) {
-      setShowAuthModal(true);
-      return;
-    }
+    if (!user) { setShowAuthModal(true); return; }
 
     setIsVoting(true);
     try {
@@ -69,6 +85,41 @@ export default function ReportDetailModal() {
       console.error('Vote failed:', err);
     } finally {
       setIsVoting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!selectedReport || !canModify) return;
+    if (!window.confirm('Bu pini silmek istediğinizden emin misiniz?')) return;
+    setIsDeleting(true);
+    try {
+      await deleteReport(selectedReport.id);
+      removeReportFromCache(selectedReport.id);
+      setSelectedReport(null);
+    } catch (err) {
+      console.error('Delete failed:', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  function startEdit() {
+    setEditTitle(selectedReport!.title);
+    setEditDesc(selectedReport!.description);
+    setEditMode(true);
+  }
+
+  async function handleSaveEdit() {
+    if (!selectedReport) return;
+    setSaving(true);
+    try {
+      await updateReport(selectedReport.id, { title: editTitle.trim(), description: editDesc.trim() });
+      updateReportInCache(selectedReport.id, { title: editTitle.trim(), description: editDesc.trim() });
+      setEditMode(false);
+    } catch (err) {
+      console.error('Update failed:', err);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -95,7 +146,7 @@ export default function ReportDetailModal() {
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={() => setSelectedReport(null)}
       />
-      <div className="relative w-full md:max-w-lg bg-white dark:bg-gray-900 rounded-t-2xl md:rounded-2xl shadow-2xl animate-slide-up md:animate-fade-in max-h-[85vh] overflow-y-auto">
+      <div className="relative w-full md:max-w-lg bg-white dark:bg-gray-900 rounded-t-2xl md:rounded-2xl shadow-2xl animate-slide-up md:animate-fade-in max-h-[90vh] overflow-y-auto">
         {/* Close */}
         <button
           onClick={() => setSelectedReport(null)}
@@ -104,40 +155,99 @@ export default function ReportDetailModal() {
           <X className="w-4 h-4" />
         </button>
 
-        {/* Image */}
+        {/* Image — full, auto height */}
         {selectedReport.imageUrl && (
-          <div className="h-48 bg-gray-100 dark:bg-gray-800 overflow-hidden rounded-t-2xl md:rounded-t-2xl">
+          <div className="w-full bg-black rounded-t-2xl overflow-hidden">
             <img
               src={selectedReport.imageUrl}
               alt={selectedReport.title}
-              className="w-full h-full object-cover"
+              className="w-full object-contain max-h-80"
               onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
             />
           </div>
         )}
 
-        <div className="p-5 space-y-4">
+        <div className="p-4 sm:p-5 space-y-4">
           {/* Category badge + expiry */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
             <span
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
               style={{ backgroundColor: `${meta.color}20`, color: meta.color }}
             >
               {meta.emoji} {meta.label}
             </span>
-            <span className="text-xs text-gray-400">{expiresIn(selectedReport.expiresAt)}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">{expiresIn(selectedReport.expiresAt)}</span>
+              {canModify && !editMode && (
+                <>
+                  <button
+                    onClick={startEdit}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-blue-500 transition-colors"
+                    title="Düzenle"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                    title="Sil"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Title */}
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-snug">
-            {selectedReport.title}
-          </h2>
+          {editMode ? (
+            <input
+              value={editTitle}
+              onChange={e => setEditTitle(e.target.value)}
+              maxLength={120}
+              className="w-full px-3 py-2 rounded-xl border-2 border-blue-400 bg-white dark:bg-gray-800 text-base font-bold focus:outline-none"
+            />
+          ) : (
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 leading-snug">
+              {selectedReport.title}
+            </h2>
+          )}
 
           {/* Description */}
-          {selectedReport.description && (
-            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-              {selectedReport.description}
-            </p>
+          {editMode ? (
+            <textarea
+              value={editDesc}
+              onChange={e => setEditDesc(e.target.value)}
+              maxLength={500}
+              rows={3}
+              className="w-full px-3 py-2 rounded-xl border-2 border-blue-400 bg-white dark:bg-gray-800 text-sm resize-none focus:outline-none"
+            />
+          ) : (
+            selectedReport.description && (
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                {selectedReport.description}
+              </p>
+            )
+          )}
+
+          {/* Edit save/cancel */}
+          {editMode && (
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveEdit}
+                disabled={saving || !editTitle.trim()}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold disabled:opacity-50"
+              >
+                <Check className="w-4 h-4" /> Kaydet
+              </button>
+              <button
+                onClick={() => setEditMode(false)}
+                className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm"
+              >
+                İptal
+              </button>
+            </div>
           )}
 
           {/* Author + time */}
@@ -148,7 +258,7 @@ export default function ReportDetailModal() {
               </div>
               <span>{selectedReport.username}</span>
               {selectedReport.authorVerified && (
-                <BadgeCheck className="w-3.5 h-3.5 text-blue-500" aria-label="Onaylı Yerel Muhabir" />
+                <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />
               )}
             </div>
             <div className="flex items-center gap-1">
@@ -199,7 +309,7 @@ export default function ReportDetailModal() {
             <p className="text-xs text-center text-gray-400">Oy kullandınız</p>
           )}
 
-          {/* Share buttons */}
+          {/* Share */}
           <div className="flex gap-2 pt-1">
             <button
               onClick={handleWhatsAppShare}

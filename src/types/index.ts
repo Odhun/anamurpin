@@ -1,6 +1,6 @@
 import { Timestamp } from 'firebase/firestore';
 
-export type CategoryType = 'emergency' | 'event' | 'weather' | 'lost' | 'general';
+export type CategoryType = 'emergency' | 'event' | 'weather' | 'lost' | 'general' | 'ad';
 
 export interface Report {
   id: string;

@@ -1,0 +1,25 @@
+{
+  "name": "AnamurPin",
+  "short_name": "AnamurPin",
+  "description": "Anamur, Bozyazı ve Aydıncık için gerçek zamanlı crowdsourced harita",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "categories": ["news", "navigation"],
+  "icons": [
+    {
+      "src": "/api/icon/192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/api/icon/512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

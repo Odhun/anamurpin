@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { MapContainer, TileLayer, useMapEvents, Marker, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, useMapEvents, Marker, Tooltip, useMap } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Navigation, Loader2 } from 'lucide-react';
@@ -10,24 +11,29 @@ import { Report } from '@/types';
 import { getCategoryMeta } from '@/utils/categories';
 import MapController from './MapController';
 
-// CartoDB tile layers
 const TILES = {
   light: {
-    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    subdomains: 'abc',
   },
   dark: {
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd',
   },
 };
+
+const DISTRICTS = [
+  { name: 'Anamur', coords: [36.0741, 32.8355] as [number, number] },
+  { name: 'Bozyazı', coords: [36.0978, 33.0077] as [number, number] },
+  { name: 'Aydıncık', coords: [36.1400, 33.3177] as [number, number] },
+];
 
 const MAP_CENTER: [number, number] = [36.0741, 32.8355];
 const MAP_BOUNDS: [[number, number], [number, number]] = [
   [35.9, 32.6],
-  [36.3, 33.3],
+  [36.3, 33.5],
 ];
 
 function createPinIcon(category: string, isPremium: boolean, isNew: boolean): L.DivIcon {
@@ -68,8 +74,49 @@ function createPinIcon(category: string, isPremium: boolean, isNew: boolean): L.
   });
 }
 
+function createClusterIcon(cluster: any): L.DivIcon {
+  const count = cluster.getChildCount();
+  const size = count < 10 ? 36 : count < 50 ? 42 : 48;
+  return L.divIcon({
+    className: '',
+    html: `
+      <div style="
+        width:${size}px;height:${size}px;
+        background:#3b82f6;
+        border:3px solid white;
+        border-radius:50%;
+        box-shadow:0 3px 10px rgba(0,0,0,0.3);
+        display:flex;align-items:center;justify-content:center;
+        color:white;font-weight:700;font-size:${size < 42 ? 12 : 13}px;
+        font-family:system-ui,sans-serif;
+      ">${count}</div>
+    `,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
 function isNewReport(createdAt: { toMillis: () => number }): boolean {
   return Date.now() - createdAt.toMillis() < 60 * 60 * 1000;
+}
+
+function DistrictShortcuts() {
+  const map = useMap();
+  return (
+    <div className="leaflet-top leaflet-left" style={{ marginTop: '8px', marginLeft: '8px' }}>
+      <div className="leaflet-control flex gap-1.5">
+        {DISTRICTS.map(d => (
+          <button
+            key={d.name}
+            onClick={() => map.flyTo(d.coords, 14, { duration: 1 })}
+            className="px-2.5 py-1 bg-white dark:bg-gray-800 shadow-md rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-gray-700 active:scale-95 transition-all"
+          >
+            {d.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function LocateMe() {
@@ -165,26 +212,40 @@ export default function MapComponent({ reports, focusReportId }: MapComponentPro
         key={isDarkMode ? 'dark' : 'light'}
         url={tiles.url}
         attribution={tiles.attribution}
-        subdomains="abcd"
+        subdomains={tiles.subdomains}
         maxZoom={19}
       />
 
       <MapEvents />
+      <DistrictShortcuts />
       <LocateMe />
       <MapController focusReportId={focusReportId} reports={reports} />
 
-      {reports.map((report) => (
-        <Marker
-          key={report.id}
-          position={[report.latitude, report.longitude]}
-          icon={createPinIcon(
-            report.category,
-            report.isPremium,
-            isNewReport(report.createdAt),
-          )}
-          eventHandlers={{ click: handleMarkerClick(report) }}
-        />
-      ))}
+      <MarkerClusterGroup
+        chunkedLoading
+        iconCreateFunction={createClusterIcon}
+        maxClusterRadius={60}
+        showCoverageOnHover={false}
+        zoomToBoundsOnClick
+        spiderfyOnMaxZoom
+      >
+        {reports.map((report) => (
+          <Marker
+            key={report.id}
+            position={[report.latitude, report.longitude]}
+            icon={createPinIcon(
+              report.category,
+              report.isPremium,
+              isNewReport(report.createdAt),
+            )}
+            eventHandlers={{ click: handleMarkerClick(report) }}
+          >
+            <Tooltip direction="top" offset={[0, -44]} opacity={0.95}>
+              <span className="text-xs font-medium max-w-[160px] block truncate">{report.title}</span>
+            </Tooltip>
+          </Marker>
+        ))}
+      </MarkerClusterGroup>
     </MapContainer>
   );
 }

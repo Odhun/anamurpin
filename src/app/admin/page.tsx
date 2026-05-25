@@ -3,11 +3,10 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppStore } from '@/store/useAppStore';
+import { isAdminUser } from '@/lib/admin';
 import AdminPanel from '@/components/admin/AdminPanel';
 import Header from '@/components/ui/Header';
 import { ShieldOff } from 'lucide-react';
-
-const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID;
 
 export default function AdminPage() {
   useAuth();
@@ -18,7 +17,7 @@ export default function AdminPage() {
     setDarkMode(saved === 'dark');
   }, [setDarkMode]);
 
-  const isAdmin = !!user && !user.isAnonymous && user.uid === ADMIN_UID;
+  const isAdmin = isAdminUser(user);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-950">

@@ -59,11 +59,11 @@ function ReportCard({ report, onClick }: Props) {
 
       {/* Image thumbnail */}
       {report.imageUrl && (
-        <div className="mt-2 rounded-lg overflow-hidden h-24 bg-gray-100 dark:bg-gray-800">
+        <div className="mt-2 rounded-lg overflow-hidden bg-black">
           <img
             src={report.imageUrl}
             alt={report.title}
-            className="w-full h-full object-cover"
+            className="w-full max-h-36 object-contain"
             onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
           />
         </div>

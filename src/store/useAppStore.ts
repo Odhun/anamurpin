@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { User } from 'firebase/auth';
 import { Report, CategoryType, MapBounds, UserProfile } from '@/types';
 
+type UsernameModalMode = 'select' | 'change';
+type TimeFilter = 'all' | '1h' | '24h' | '7d';
+
 interface AppState {
   // Auth
   user: User | null;
@@ -13,7 +16,10 @@ interface AppState {
 
   // Username modal
   showUsernameModal: boolean;
+  usernameModalMode: UsernameModalMode;
   setShowUsernameModal: (v: boolean) => void;
+  openUsernameSelect: () => void;
+  openUsernameChange: () => void;
 
   // Reports cache
   reports: Report[];
@@ -23,12 +29,20 @@ interface AppState {
   setIsFetchingReports: (v: boolean) => void;
   addReportToCache: (report: Report) => void;
   updateReportInCache: (id: string, updates: Partial<Report>) => void;
+  removeReportFromCache: (id: string) => void;
+
+  // New pins notification
+  newPinsCount: number;
+  setNewPinsCount: (n: number) => void;
+  clearNewPins: () => void;
 
   // Selection / modals
   selectedReport: Report | null;
   setSelectedReport: (report: Report | null) => void;
   showAuthModal: boolean;
   setShowAuthModal: (v: boolean) => void;
+  showLeaderboard: boolean;
+  setShowLeaderboard: (v: boolean) => void;
 
   // Add-pin mode
   isAddingPin: boolean;
@@ -36,12 +50,14 @@ interface AppState {
   setIsAddingPin: (v: boolean) => void;
   setAddPinCoords: (coords: { lat: number; lng: number } | null) => void;
 
-  // Filters (client-side only — no Firestore query triggered)
+  // Filters
   selectedCategories: CategoryType[];
   toggleCategory: (cat: CategoryType) => void;
   resetCategories: () => void;
+  timeFilter: TimeFilter;
+  setTimeFilter: (f: TimeFilter) => void;
 
-  // Map viewport (for timeline filtering)
+  // Map viewport
   mapBounds: MapBounds | null;
   setMapBounds: (bounds: MapBounds) => void;
 
@@ -55,7 +71,7 @@ interface AppState {
   setTemperature: (t: number | null) => void;
 }
 
-const ALL_CATEGORIES: CategoryType[] = ['emergency', 'event', 'weather', 'lost', 'general'];
+const ALL_CATEGORIES: CategoryType[] = ['emergency', 'event', 'weather', 'lost', 'general', 'ad'];
 
 export const useAppStore = create<AppState>((set) => ({
   user: null,
@@ -66,7 +82,10 @@ export const useAppStore = create<AppState>((set) => ({
   setUserNetScore: (score) => set({ userNetScore: score }),
 
   showUsernameModal: false,
+  usernameModalMode: 'select',
   setShowUsernameModal: (v) => set({ showUsernameModal: v }),
+  openUsernameSelect: () => set({ showUsernameModal: true, usernameModalMode: 'select' }),
+  openUsernameChange: () => set({ showUsernameModal: true, usernameModalMode: 'change' }),
 
   reports: [],
   isFetchingReports: false,
@@ -79,11 +98,19 @@ export const useAppStore = create<AppState>((set) => ({
     set((s) => ({
       reports: s.reports.map(r => r.id === id ? { ...r, ...updates } : r),
     })),
+  removeReportFromCache: (id) =>
+    set((s) => ({ reports: s.reports.filter(r => r.id !== id) })),
+
+  newPinsCount: 0,
+  setNewPinsCount: (n) => set({ newPinsCount: n }),
+  clearNewPins: () => set({ newPinsCount: 0 }),
 
   selectedReport: null,
   setSelectedReport: (report) => set({ selectedReport: report }),
   showAuthModal: false,
   setShowAuthModal: (v) => set({ showAuthModal: v }),
+  showLeaderboard: false,
+  setShowLeaderboard: (v) => set({ showLeaderboard: v }),
 
   isAddingPin: false,
   addPinCoords: null,
@@ -100,6 +127,8 @@ export const useAppStore = create<AppState>((set) => ({
       return { selectedCategories: next.length === 0 ? ALL_CATEGORIES : next };
     }),
   resetCategories: () => set({ selectedCategories: ALL_CATEGORIES }),
+  timeFilter: 'all',
+  setTimeFilter: (f) => set({ timeFilter: f }),
 
   mapBounds: null,
   setMapBounds: (bounds) => set({ mapBounds: bounds }),

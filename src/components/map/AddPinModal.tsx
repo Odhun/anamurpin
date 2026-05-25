@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { X, MapPin, Image as ImageIcon, Loader2, AlertCircle, Navigation } from 'lucide-react';
+import { X, MapPin, Image as ImageIcon, Loader2, AlertCircle, Navigation, Clock } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { getCategoryMeta, CATEGORIES } from '@/utils/categories';
 import { CategoryType } from '@/types';
@@ -9,6 +9,36 @@ import { createReport, uploadReportImage } from '@/lib/firestore';
 import { compressToWebP, isBlockedFileType, formatFileSize } from '@/lib/imageCompression';
 import { getUserNetScore } from '@/lib/firestore';
 import { isVerifiedReporter } from '@/lib/reliability';
+import { isAdminUser } from '@/lib/admin';
+
+const RATE_KEY = 'anamurpin_pin_times';
+const RATE_LIMIT = 5;
+const RATE_WINDOW_MS = 60 * 60 * 1000;
+
+function getPinTimes(): number[] {
+  try {
+    const raw = localStorage.getItem(RATE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function canCreatePin(): boolean {
+  const cutoff = Date.now() - RATE_WINDOW_MS;
+  return getPinTimes().filter(t => t > cutoff).length < RATE_LIMIT;
+}
+
+function remainingPins(): number {
+  const cutoff = Date.now() - RATE_WINDOW_MS;
+  const used = getPinTimes().filter(t => t > cutoff).length;
+  return Math.max(0, RATE_LIMIT - used);
+}
+
+function recordPin(): void {
+  const cutoff = Date.now() - RATE_WINDOW_MS;
+  const recent = getPinTimes().filter(t => t > cutoff);
+  recent.push(Date.now());
+  try { localStorage.setItem(RATE_KEY, JSON.stringify(recent)); } catch {}
+}
 
 export default function AddPinModal() {
   const {
@@ -20,9 +50,13 @@ export default function AddPinModal() {
     addReportToCache,
   } = useAppStore();
 
+  const isAdmin = isAdminUser(user);
+  const visibleCategories = CATEGORIES.filter(c => c.id !== 'ad' || isAdmin);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<CategoryType>('general');
+  const [days, setDays] = useState(2);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -66,6 +100,11 @@ export default function AddPinModal() {
     e.preventDefault();
     if (!user || user.isAnonymous || !addPinCoords) return;
 
+    if (!isAdmin && !canCreatePin()) {
+      setError(`Saatlik pin limitine ulaştınız (${RATE_LIMIT} pin/saat). Biraz bekleyin.`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -92,9 +131,9 @@ export default function AddPinModal() {
         status: 'active',
         isPremium: false,
         authorVerified,
+        durationDays: days,
       });
 
-      // Optimistically add to local cache
       const { Timestamp } = await import('firebase/firestore');
       const now = Timestamp.now();
       addReportToCache({
@@ -108,7 +147,7 @@ export default function AddPinModal() {
         longitude: addPinCoords.lng,
         imageUrl,
         createdAt: now,
-        expiresAt: Timestamp.fromMillis(now.toMillis() + 7 * 24 * 60 * 60 * 1000),
+        expiresAt: Timestamp.fromMillis(now.toMillis() + days * 24 * 60 * 60 * 1000),
         upvotes: 0,
         downvotes: 0,
         status: 'active',
@@ -116,6 +155,7 @@ export default function AddPinModal() {
         authorVerified,
       });
 
+      if (!isAdmin) recordPin();
       close();
     } catch (err: any) {
       setError(err.message ?? 'Bir hata oluştu. Tekrar deneyin.');
@@ -173,14 +213,14 @@ export default function AddPinModal() {
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Kategori</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {CATEGORIES.map(cat => (
+              {visibleCategories.map(cat => (
                 <button
                   key={cat.id}
                   type="button"
                   onClick={() => setCategory(cat.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm border-2 transition-all ${
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm border-2 transition-all ${
                     category === cat.id
-                      ? `border-current text-white`
+                      ? 'border-current text-white'
                       : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'
                   }`}
                   style={category === cat.id ? { backgroundColor: cat.color, borderColor: cat.color } : {}}
@@ -222,6 +262,30 @@ export default function AddPinModal() {
             />
           </div>
 
+          {/* Duration */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <Clock className="w-4 h-4" />
+              Pin Süresi
+            </label>
+            <div className="flex gap-1.5 flex-wrap">
+              {[1, 2, 3, 4, 5, 6, 7].map(d => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDays(d)}
+                  className={`flex-1 min-w-[2.5rem] py-2 rounded-xl text-sm font-medium border-2 transition-all ${
+                    days === d
+                      ? 'border-blue-500 bg-blue-500 text-white'
+                      : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300'
+                  }`}
+                >
+                  {d}g
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Image */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -235,8 +299,8 @@ export default function AddPinModal() {
               onChange={handleImageChange}
             />
             {imagePreview ? (
-              <div className="relative rounded-xl overflow-hidden">
-                <img src={imagePreview} alt="önizleme" className="w-full h-40 object-cover" />
+              <div className="relative rounded-xl overflow-hidden bg-black">
+                <img src={imagePreview} alt="önizleme" className="w-full max-h-56 object-contain" />
                 <button
                   type="button"
                   onClick={() => { setImageFile(null); setImagePreview(null); }}
@@ -272,16 +336,21 @@ export default function AddPinModal() {
           )}
 
           {/* Submit */}
+          {!isAdmin && (
+            <p className="text-xs text-gray-400 text-center">
+              Bu saat: {remainingPins()} pin hakkın kaldı
+            </p>
+          )}
           <button
             type="submit"
-            disabled={loading || !title.trim()}
+            disabled={loading || !title.trim() || (!isAdmin && !canCreatePin())}
             className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             style={{ backgroundColor: catMeta.color }}
           >
             {loading ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Yükleniyor…</>
             ) : (
-              <><MapPin className="w-4 h-4" /> Pin Bırak</>
+              <><MapPin className="w-4 h-4" /> Pin Bırak ({days} gün)</>
             )}
           </button>
         </form>

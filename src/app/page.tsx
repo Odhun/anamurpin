@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useReports } from '@/hooks/useReports';
 import { useWeather } from '@/hooks/useWeather';
 import { useAppStore } from '@/store/useAppStore';
+import { isAdminUser } from '@/lib/admin';
 import Header from '@/components/ui/Header';
 import FrostBanner from '@/components/ui/FrostBanner';
 import CategoryFilter from '@/components/ui/CategoryFilter';
@@ -14,6 +15,7 @@ import ReportDetailModal from '@/components/modals/ReportDetailModal';
 import AddPinModal from '@/components/map/AddPinModal';
 import AuthModal from '@/components/ui/AuthModal';
 import UsernameModal from '@/components/ui/UsernameModal';
+import Leaderboard from '@/components/ui/Leaderboard';
 
 const MapView = dynamic(() => import('@/components/map/MapView'), {
   ssr: false,
@@ -31,7 +33,10 @@ export default function HomePage() {
   useAuth();
   const { allReports, timelineReports, isLoading, refresh } = useReports();
   const { isFrost, temperature } = useWeather();
-  const { selectedReport, isAddingPin, showAuthModal, showUsernameModal, isDarkMode, setDarkMode } = useAppStore();
+  const { user, selectedReport, isAddingPin, showAuthModal, showUsernameModal, showLeaderboard, isDarkMode, setDarkMode } = useAppStore();
+  const isAdmin = isAdminUser(user);
+  const visibleReports = isAdmin ? allReports : allReports.filter(r => r.category !== 'ad');
+  const visibleTimeline = isAdmin ? timelineReports : timelineReports.filter(r => r.category !== 'ad');
 
   // Sync theme on mount
   useEffect(() => {
@@ -56,15 +61,15 @@ export default function HomePage() {
           flex-col border-r border-gray-200 dark:border-gray-800
           bg-white dark:bg-gray-950
         ">
-          <Timeline reports={timelineReports} isLoading={isLoading} onRefresh={refresh} />
+          <Timeline reports={visibleTimeline} isLoading={isLoading} onRefresh={refresh} />
         </aside>
 
         {/* Map */}
         <main className="flex-1 relative min-h-0">
-          <MapView reports={allReports} />
+          <MapView reports={visibleReports} />
 
           {/* Mobile timeline bottom-sheet */}
-          <MobileBottomSheet reports={timelineReports} isLoading={isLoading} onRefresh={refresh} />
+          <MobileBottomSheet reports={visibleTimeline} isLoading={isLoading} onRefresh={refresh} />
 
           {/* Click-to-add hint overlay */}
           {!isAddingPin && (
@@ -81,6 +86,7 @@ export default function HomePage() {
       {isAddingPin && <AddPinModal />}
       {showAuthModal && <AuthModal />}
       {showUsernameModal && <UsernameModal />}
+      {showLeaderboard && <Leaderboard />}
     </div>
   );
 }

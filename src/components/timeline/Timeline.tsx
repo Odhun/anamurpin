@@ -1,6 +1,6 @@
 'use client';
 
-import { RefreshCw, Inbox } from 'lucide-react';
+import { RefreshCw, Inbox, Clock } from 'lucide-react';
 import { Report } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 import ReportCard from './ReportCard';
@@ -11,8 +11,27 @@ interface Props {
   onRefresh: () => void;
 }
 
+const TIME_FILTERS = [
+  { key: 'all' as const, label: 'Tümü' },
+  { key: '1h' as const, label: '1s' },
+  { key: '24h' as const, label: '24s' },
+  { key: '7d' as const, label: '7g' },
+];
+
 export default function Timeline({ reports, isLoading, onRefresh }: Props) {
-  const { setSelectedReport, mapBounds } = useAppStore();
+  const {
+    setSelectedReport,
+    mapBounds,
+    newPinsCount,
+    clearNewPins,
+    timeFilter,
+    setTimeFilter,
+  } = useAppStore();
+
+  function handleRefresh() {
+    clearNewPins();
+    onRefresh();
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -27,14 +46,42 @@ export default function Timeline({ reports, isLoading, onRefresh }: Props) {
             {reports.length > 0 && ` · ${reports.length} pin`}
           </p>
         </div>
-        <button
-          onClick={onRefresh}
-          disabled={isLoading}
-          className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
-          title="Yenile"
-        >
-          <RefreshCw className={`w-4 h-4 text-gray-500 ${isLoading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center gap-1.5">
+          {newPinsCount > 0 && (
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-500 text-white text-xs font-semibold animate-bounce"
+            >
+              +{newPinsCount} yeni
+            </button>
+          )}
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading}
+            className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50"
+            title="Yenile"
+          >
+            <RefreshCw className={`w-4 h-4 text-gray-500 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Time filter */}
+      <div className="flex gap-1 px-3 py-2 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+        {TIME_FILTERS.map(f => (
+          <button
+            key={f.key}
+            onClick={() => setTimeFilter(f.key)}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+              timeFilter === f.key
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            {f.key !== 'all' && <Clock className="w-3 h-3" />}
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {/* List */}
