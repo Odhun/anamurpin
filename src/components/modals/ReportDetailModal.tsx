@@ -130,7 +130,7 @@ export default function ReportDetailModal() {
       `📍 ${meta.emoji} ${meta.label}\n` +
       `🗺️ AnamurPin: ${pinUrl}`;
     window.open(
-      `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`,
+      `https://wa.me/?text=${encodeURIComponent(text)}`,
       '_blank',
       'noopener,noreferrer',
     );
