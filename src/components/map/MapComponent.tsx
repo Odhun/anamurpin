@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, useMapEvents, Marker, Tooltip, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
@@ -102,8 +102,20 @@ function isNewReport(createdAt: { toMillis: () => number }): boolean {
 
 function DistrictShortcuts() {
   const map = useMap();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      L.DomEvent.disableClickPropagation(containerRef.current);
+    }
+  }, []);
+
   return (
-    <div className="leaflet-top leaflet-left" style={{ marginTop: '8px', marginLeft: '8px' }}>
+    <div
+      ref={containerRef}
+      className="leaflet-top leaflet-right"
+      style={{ marginTop: '8px', marginRight: '8px' }}
+    >
       <div className="leaflet-control flex gap-1.5">
         {DISTRICTS.map(d => (
           <button
@@ -122,6 +134,13 @@ function DistrictShortcuts() {
 function LocateMe() {
   const map = useMap();
   const [locating, setLocating] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (containerRef.current) {
+      L.DomEvent.disableClickPropagation(containerRef.current);
+    }
+  }, []);
 
   function handleLocate() {
     if (!navigator.geolocation) return;
@@ -137,7 +156,7 @@ function LocateMe() {
   }
 
   return (
-    <div className="leaflet-bottom leaflet-right" style={{ marginBottom: '28px' }}>
+    <div ref={containerRef} className="leaflet-bottom leaflet-right" style={{ marginBottom: '28px' }}>
       <div className="leaflet-control">
         <button
           onClick={handleLocate}
