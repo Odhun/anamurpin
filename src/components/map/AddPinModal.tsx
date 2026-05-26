@@ -10,6 +10,7 @@ import { compressToWebP, isBlockedFileType, formatFileSize } from '@/lib/imageCo
 import { getUserNetScore } from '@/lib/firestore';
 import { isVerifiedReporter } from '@/lib/reliability';
 import { isAdminUser } from '@/lib/admin';
+import { containsBlacklisted, containsLink } from '@/lib/blacklist';
 
 const RATE_KEY = 'anamurpin_pin_times';
 const RATE_LIMIT = 5;
@@ -55,6 +56,8 @@ export default function AddPinModal() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+
+  const hasLink = containsLink(title) || containsLink(description);
   const [category, setCategory] = useState<CategoryType>('general');
   const [days, setDays] = useState(2);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -112,6 +115,11 @@ export default function AddPinModal() {
 
     if (!isAdmin && !canCreatePin()) {
       setError(`Saatlik pin limitine ulaştınız (${RATE_LIMIT} pin/saat). Biraz bekleyin.`);
+      return;
+    }
+
+    if (containsBlacklisted(title) || containsBlacklisted(description)) {
+      setError('İçerik topluluk kurallarına aykırı ifadeler içeriyor. Lütfen düzeltin.');
       return;
     }
 
@@ -316,6 +324,14 @@ export default function AddPinModal() {
             )}
           </div>
 
+          {/* Link uyarısı */}
+          {hasLink && (
+            <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 text-sm bg-orange-50 dark:bg-orange-900/20 rounded-xl px-3 py-2.5">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              Pinlerde link paylaşılamaz. Lütfen linki kaldırın.
+            </div>
+          )}
+
           {/* Error */}
           {error && (
             <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 rounded-xl px-3 py-2.5">
@@ -332,7 +348,7 @@ export default function AddPinModal() {
           )}
           <button
             type="submit"
-            disabled={loading || !title.trim() || (!isAdmin && !canCreatePin())}
+            disabled={loading || !title.trim() || hasLink || (!isAdmin && !canCreatePin())}
             className="w-full py-3 rounded-xl text-white font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             style={{ backgroundColor: catMeta.color }}
           >
