@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './firebase';
-import { Report, UserProfile, CategoryType } from '@/types';
+import { Report, UserProfile, CategoryType, SiteConfig } from '@/types';
 import { isVerifiedReporter } from './reliability';
 
 const CACHE_KEY = 'anamurpin_reports_v2';
@@ -251,4 +251,65 @@ export async function batchDeleteExpiredReports(): Promise<number> {
 
   invalidateCache();
   return snapshot.size;
+}
+
+const DEFAULT_SITE_CONFIG: SiteConfig = {
+  announcementEnabled: false,
+  announcementText: '',
+  announcementType: 'info',
+  maintenanceMode: false,
+  maintenanceMessage: '',
+};
+
+export async function getSiteConfig(): Promise<SiteConfig> {
+  const snap = await getDoc(doc(db, 'site_config', 'settings'));
+  if (!snap.exists()) return { ...DEFAULT_SITE_CONFIG };
+  return { ...DEFAULT_SITE_CONFIG, ...snap.data() } as SiteConfig;
+}
+
+export async function updateSiteConfig(config: Partial<SiteConfig>): Promise<void> {
+  await setDoc(doc(db, 'site_config', 'settings'), config, { merge: true });
+}
+
+export function subscribeSiteConfig(onUpdate: (config: SiteConfig) => void): () => void {
+  return onSnapshot(doc(db, 'site_config', 'settings'), (snap) => {
+    if (!snap.exists()) { onUpdate({ ...DEFAULT_SITE_CONFIG }); return; }
+    onUpdate({ ...DEFAULT_SITE_CONFIG, ...snap.data() } as SiteConfig);
+  });
+}
+
+export async function fetchAllUsers(limitCount = 200): Promise<UserProfile[]> {
+  const q = query(collection(db, 'users'), orderBy('createdAt', 'desc'), limit(limitCount));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile));
+}
+
+export async function banUser(userId: string, reason: string): Promise<void> {
+  await updateDoc(doc(db, 'users', userId), { banned: true, bannedReason: reason });
+}
+
+export async function unbanUser(userId: string): Promise<void> {
+  await updateDoc(doc(db, 'users', userId), { banned: false, bannedReason: '' });
+}
+
+export async function batchDeleteByCategory(category: CategoryType): Promise<number> {
+  const q = query(collection(db, 'reports'), where('category', '==', category), limit(500));
+  const snap = await getDocs(q);
+  if (snap.empty) return 0;
+  const batch = writeBatch(db);
+  snap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+  invalidateCache();
+  return snap.size;
+}
+
+export async function batchDeleteByUser(userId: string): Promise<number> {
+  const q = query(collection(db, 'reports'), where('userId', '==', userId), limit(500));
+  const snap = await getDocs(q);
+  if (snap.empty) return 0;
+  const batch = writeBatch(db);
+  snap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+  invalidateCache();
+  return snap.size;
 }

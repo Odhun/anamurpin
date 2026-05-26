@@ -44,6 +44,7 @@ export default function AddPinModal() {
   const {
     user,
     userProfile,
+    siteConfig,
     addPinCoords,
     setIsAddingPin,
     setAddPinCoords,
@@ -98,6 +99,16 @@ export default function AddPinModal() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!user || user.isAnonymous || !addPinCoords) return;
+
+    if (!isAdmin && userProfile?.banned) {
+      setError(`Hesabınız yasaklandı.${userProfile.bannedReason ? ` Sebep: ${userProfile.bannedReason}` : ''}`);
+      return;
+    }
+
+    if (!isAdmin && siteConfig?.maintenanceMode) {
+      setError(siteConfig.maintenanceMessage || 'Site şu anda bakım modunda. Lütfen daha sonra tekrar deneyin.');
+      return;
+    }
 
     if (!isAdmin && !canCreatePin()) {
       setError(`Saatlik pin limitine ulaştınız (${RATE_LIMIT} pin/saat). Biraz bekleyin.`);

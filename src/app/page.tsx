@@ -6,9 +6,11 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useReports } from '@/hooks/useReports';
 import { useWeather } from '@/hooks/useWeather';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useAppStore } from '@/store/useAppStore';
 import Header from '@/components/ui/Header';
 import FrostBanner from '@/components/ui/FrostBanner';
+import AnnouncementBanner from '@/components/ui/AnnouncementBanner';
 import CategoryFilter from '@/components/ui/CategoryFilter';
 import Timeline from '@/components/timeline/Timeline';
 import ReportDetailModal from '@/components/modals/ReportDetailModal';
@@ -31,6 +33,7 @@ const MapView = dynamic(() => import('@/components/map/MapView'), {
 
 export default function HomePage() {
   useAuth();
+  useSiteConfig();
   const { allReports, timelineReports, isLoading, refresh } = useReports();
   const { isFrost, temperature } = useWeather();
   const { selectedReport, isAddingPin, showAuthModal, showUsernameModal, showLeaderboard, isDarkMode, setDarkMode } = useAppStore();
@@ -48,6 +51,7 @@ export default function HomePage() {
       <Header />
 
       {isFrost && temperature !== null && <FrostBanner temperature={temperature} />}
+      <AnnouncementBanner />
 
       <CategoryFilter />
 

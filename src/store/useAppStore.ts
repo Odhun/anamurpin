@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { User } from 'firebase/auth';
-import { Report, CategoryType, MapBounds, UserProfile } from '@/types';
+import { Report, CategoryType, MapBounds, UserProfile, SiteConfig } from '@/types';
 
 type UsernameModalMode = 'select' | 'change';
 type TimeFilter = 'all' | '1h' | '24h' | '7d';
@@ -69,6 +69,10 @@ interface AppState {
   // Weather / frost
   temperature: number | null;
   setTemperature: (t: number | null) => void;
+
+  // Site config
+  siteConfig: SiteConfig | null;
+  setSiteConfig: (config: SiteConfig | null) => void;
 }
 
 const ALL_CATEGORIES: CategoryType[] = ['emergency', 'traffic', 'fight', 'event', 'radar', 'weather', 'lost', 'general', 'other', 'ad'];
@@ -147,4 +151,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   temperature: null,
   setTemperature: (t) => set({ temperature: t }),
+
+  siteConfig: null,
+  setSiteConfig: (config) => set({ siteConfig: config }),
 }));

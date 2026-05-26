@@ -27,6 +27,16 @@ export interface UserProfile {
   needsUsername?: boolean;
   netScore: number;
   createdAt: Timestamp;
+  banned?: boolean;
+  bannedReason?: string;
+}
+
+export interface SiteConfig {
+  announcementEnabled: boolean;
+  announcementText: string;
+  announcementType: 'info' | 'warning' | 'error' | 'success';
+  maintenanceMode: boolean;
+  maintenanceMessage?: string;
 }
 
 export interface WeatherData {
