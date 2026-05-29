@@ -86,22 +86,25 @@ export default function HomePage() {
           </div>
         </aside>
 
-        {/* Map */}
-        <main className="flex-1 relative min-h-0">
-          <MapView reports={visibleReports} />
+        {/* Right column: map + mobile bottom sheet stacked */}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Map — framed on mobile (mx/rounded), full-bleed on desktop */}
+          <main className="flex-1 relative min-h-0 mx-2 mt-1.5 mb-0 md:mx-0 md:mt-0 rounded-2xl md:rounded-none overflow-hidden">
+            <MapView reports={visibleReports} />
 
-          {/* Mobile timeline bottom-sheet */}
-          <MobileBottomSheet reports={visibleTimeline} isLoading={isLoading} onRefresh={refresh} />
-
-          {/* Click-to-add hint overlay */}
-          {!isAddingPin && !selectedReport && (
-            <div className="absolute bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 pointer-events-none z-[400]">
-              <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm text-xs text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 dark:border-gray-700 whitespace-nowrap">
-                Haritaya tıkla → Pin ekle
+            {/* Click-to-add hint overlay */}
+            {!isAddingPin && !selectedReport && (
+              <div className="absolute bottom-5 md:bottom-6 left-1/2 -translate-x-1/2 pointer-events-none z-[400]">
+                <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm text-xs text-gray-600 dark:text-gray-300 px-3 py-1.5 rounded-full shadow-sm border border-gray-200 dark:border-gray-700 whitespace-nowrap">
+                  Haritaya tıkla → Pin ekle
+                </div>
               </div>
-            </div>
-          )}
-        </main>
+            )}
+          </main>
+
+          {/* Mobile bottom sheet — in flex flow, always visible, no z-index fights */}
+          <MobileBottomSheet reports={visibleTimeline} isLoading={isLoading} onRefresh={refresh} />
+        </div>
       </div>
 
       {selectedReport && <ReportDetailModal />}
@@ -126,8 +129,8 @@ function MobileBottomSheet({
 
   return (
     <div
-      className={`md:hidden absolute bottom-0 left-0 right-0 z-[500] bg-white dark:bg-gray-950 rounded-t-2xl shadow-2xl border-t-2 border-blue-200 dark:border-blue-900 flex flex-col overflow-hidden transition-all duration-300 ease-in-out ${
-        expanded ? 'max-h-[82vh]' : 'max-h-[60px]'
+      className={`md:hidden flex-shrink-0 bg-white dark:bg-gray-950 rounded-t-2xl shadow-[0_-4px_20px_-2px_rgba(0,0,0,0.12)] border-t-2 border-blue-200 dark:border-blue-900 flex flex-col overflow-hidden transition-[height] duration-300 ease-in-out ${
+        expanded ? 'h-[55vh]' : 'h-[60px]'
       }`}
     >
       {/* Tap bar */}
