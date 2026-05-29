@@ -47,7 +47,7 @@ export default function HomePage() {
   }, [setDarkMode]);
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-dvh overflow-hidden">
       <Header />
 
       {isFrost && temperature !== null && <FrostBanner temperature={temperature} />}
@@ -56,7 +56,7 @@ export default function HomePage() {
       <CategoryFilter />
 
       {/* Desktop: side-by-side | Mobile: stacked */}
-      <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
+      <div className="flex flex-1 overflow-hidden flex-col md:flex-row min-h-0">
         {/* Timeline — left on desktop, bottom-sheet on mobile */}
         <aside className="
           hidden md:flex
@@ -87,9 +87,9 @@ export default function HomePage() {
         </aside>
 
         {/* Right column: map + mobile bottom sheet stacked */}
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Map — framed on mobile (mx/rounded), full-bleed on desktop */}
-          <main className="flex-1 relative min-h-0 mx-2 mt-1.5 mb-0 md:mx-0 md:mt-0 rounded-2xl md:rounded-none overflow-hidden">
+          <main className="flex-1 relative min-h-0 mx-3 mt-2 mb-0 md:mx-0 md:mt-0 rounded-2xl md:rounded-none overflow-hidden">
             <MapView reports={visibleReports} />
 
             {/* Click-to-add hint overlay */}
